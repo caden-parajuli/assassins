@@ -28,6 +28,7 @@
             libcxx
             pcre2
             mount
+            util-linux
 
             flutter
           ];
