@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:googleapis_auth/googleapis_auth.dart' as auth show AuthClient;
-// import 'package:googleapis/cloudfunctions/v2.dart';
 import 'package:googleapis/gmail/v1.dart';
 import 'package:googleapis/drive/v3.dart';
 
@@ -22,6 +21,14 @@ GoogleSignIn _googleSignIn = GoogleSignIn(
       '936372921440-8hmb3lhi7s9j49907himf7vae8ko1u4d.apps.googleusercontent.com',
   scopes: scopes,
 );
+
+// class Credentials extends ChangeNotifier {
+//   GoogleSignInAccount? _currentUser;
+//   auth.AuthClient? _client;
+//   GoogleSignInAccount? get user => _currentUser;
+//   auth.AuthClient? get client => _client;
+//
+// }
 
 class SignInWidget extends StatefulWidget {
   const SignInWidget({super.key});
@@ -111,11 +118,51 @@ class SignInState extends State<SignInWidget> {
     return Column(children: [
       const Text("Authorized"),
       ElevatedButton(
-          onPressed: () {
-            Provider.of<PeopleList>(context).sendEmails(client!);
+          onPressed: () async {
+            showDialog(context: context, builder: (BuildContext context) => AlertDialog(
+            title: const Text("Sending emails"),
+            content: LinearProgressIndicator(
+              value: 0.5,
+              semanticsLabel: "Emails sent",
+            )
+          ));
+            await Provider.of<PeopleList>(context, listen: false)
+                .sendEmails(client!, _currentUser!.email);
           },
           child: const Text("Send Emails")),
       ElevatedButton(onPressed: _handleSignOut, child: const Text("Sign out"))
     ]);
   }
 }
+
+// class EmailDialogue extends StatefulWidget {
+//   const EmailDialogue({super.key});
+//
+//   @override
+//   State<StatefulWidget> createState() => EmailDialogueState();
+// }
+//
+// class EmailDialogueState extends State<EmailDialogue> {
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//       ElevatedButton(
+//           onPressed: () async {
+//             showDialog(context: context, builder: (BuildContext context) => AlertDialog(
+//             title: const Text("Sending emails"),
+//             content: LinearProgressIndicator(
+//               value: 0.5,
+//               semanticsLabel: "Emails sent",
+//             )
+//           ));
+//             await Provider.of<PeopleList>(context, listen: false)
+//                 .sendEmails(client!, _currentUser!.email);
+//           },
+//           child: const Text("Send Emails"));
+//   }
+// }

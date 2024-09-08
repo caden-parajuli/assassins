@@ -1,6 +1,8 @@
 import 'dart:collection';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:googleapis/gmail/v1.dart';
 import 'package:googleapis_auth/googleapis_auth.dart' as auth show AuthClient;
 
 class Person {
@@ -68,7 +70,29 @@ class PeopleList extends ChangeNotifier {
     notifyListeners();
   }
 
-  void sendEmails(auth.AuthClient client) {
+  Future<List<ApiRequestError>> sendEmails(
+      auth.AuthClient client, String sendFrom) async {
     print("Sending emails...");
+    final GmailApi gmailApi = GmailApi(client);
+
+    List<ApiRequestError> results = [];
+    for (var i = 0; i < _people.length; i++) {
+      final assassin = _people[_order[i]];
+      final target = _people[_order[(i + 1) % _people.length]];
+      Message message = Message(
+          raw: base64UrlEncode(("Content-type: text/plain; charset=\"UTF-8\"\n"
+                  "From: $sendFrom\n"
+                  "To: ${assassin.email}\n"
+                  "Subject: Assassins Target\n\n"
+                  "Hi ${assassin.name},\n\nYour target is ${target.name}. Happy hunting!")
+              .codeUnits));
+      try {
+        await gmailApi.users.messages.send(message, 'me');
+      } on ApiRequestError catch (e) {
+        print(e.message);
+        results.add(e);
+      }
+    }
+    return results;
   }
 }
