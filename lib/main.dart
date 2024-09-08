@@ -16,9 +16,7 @@ class AssignmentTab extends StatelessWidget {
         builder: (context, people, child) {
           if (people.isEmpty()) {
             return const Text("Please return to the list tab and add players.");
-          } else if (people.ordered()
-              // Provider.of<PeopleList>(context, listen: false) .ordered()
-              ) {
+          } else if (people.ordered()) {
             return people.orderView();
           }
           return const Text("Press the randomize button to generate a cycle.");
@@ -59,18 +57,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'BCMB Assassins',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-            seedColor: Colors.deepPurple, brightness: Brightness.dark),
-        useMaterial3: true,
-      ),
-      themeMode: ThemeMode.dark,
-      home: ChangeNotifierProvider(
-          create: (context) => PeopleList(),
-          child: const MyHomePage(title: 'Assassins')),
-    );
+    return MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (context) => PeopleList()),
+          ChangeNotifierProvider(create: (context) => Credentials()),
+        ],
+        child: MaterialApp(
+            title: 'BCMB Assassins',
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                  seedColor: Colors.deepPurple, brightness: Brightness.dark),
+              useMaterial3: true,
+            ),
+            themeMode: ThemeMode.dark,
+            home: const MyHomePage(title: "Assassins"))
+        // child: const MyHomePage(title: 'Assassins')),
+        );
   }
 }
 
@@ -96,9 +98,8 @@ class MyHomePage extends StatelessWidget {
                 Tab(icon: Icon(Icons.send), text: "Send Emails"),
               ])),
           body: const TabBarView(
-            children: <Widget>[ListTab(), AssignmentTab(), SignInWidget()],
+            children: <Widget>[ListTab(), AssignmentTab(), SignInTopLevel()],
           ),
-          // bottomNavigationBar: const BottomAppBar(child: PersonForm()),
         ));
   }
 }
@@ -116,6 +117,19 @@ class PersonFormState extends State<PersonForm> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
+  late FocusNode nameFocus;
+
+  @override
+  void initState() {
+    super.initState();
+    nameFocus = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    nameFocus.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +141,8 @@ class PersonFormState extends State<PersonForm> {
                 child: Padding(
                     padding: const EdgeInsets.all(4.0),
                     child: TextFormField(
+                      autofocus: true,
+                      focusNode: nameFocus,
                       onFieldSubmitted: (value) {
                         trySubmit();
                       },
@@ -171,6 +187,7 @@ class PersonFormState extends State<PersonForm> {
       Provider.of<PeopleList>(context, listen: false)
           .add(Person(nameController.text, emailController.text));
       _formKey.currentState?.reset();
+      nameFocus.requestFocus();
     }
   }
 }

@@ -72,7 +72,6 @@ class PeopleList extends ChangeNotifier {
 
   Future<List<ApiRequestError>> sendEmails(
       auth.AuthClient client, String sendFrom) async {
-    print("Sending emails...");
     final GmailApi gmailApi = GmailApi(client);
 
     List<ApiRequestError> results = [];

@@ -1,5 +1,7 @@
 import 'dart:async';
-import './people.dart';
+import 'dart:convert';
+import 'dart:developer' as developer;
+
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in_web/web_only.dart' as web;
@@ -9,6 +11,8 @@ import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sig
 import 'package:googleapis_auth/googleapis_auth.dart' as auth show AuthClient;
 import 'package:googleapis/gmail/v1.dart';
 import 'package:googleapis/drive/v3.dart';
+
+import './people.dart';
 
 const List<String> scopes = [
   GmailApi.gmailSendScope,
@@ -22,13 +26,56 @@ GoogleSignIn _googleSignIn = GoogleSignIn(
   scopes: scopes,
 );
 
-// class Credentials extends ChangeNotifier {
-//   GoogleSignInAccount? _currentUser;
-//   auth.AuthClient? _client;
-//   GoogleSignInAccount? get user => _currentUser;
-//   auth.AuthClient? get client => _client;
-//
-// }
+class Credentials extends ChangeNotifier {
+  GoogleSignInAccount? _currentUser;
+  bool _isAuthorized = false;
+  auth.AuthClient? _client;
+  GoogleSignInAccount? get user => _currentUser;
+  bool get isAuthorized => _isAuthorized;
+  auth.AuthClient? get client => _client;
+
+  Future<void> setClient() async {
+    _client ??= await _googleSignIn.authenticatedClient();
+  }
+
+  Future<void> tryLogin(GoogleSignInAccount? account) async {
+    bool isAuthorized = account != null;
+    if (kIsWeb && isAuthorized) {
+      isAuthorized = await _googleSignIn.canAccessScopes(scopes);
+    }
+
+    _currentUser = account;
+    _isAuthorized = isAuthorized;
+
+    if (isAuthorized) {
+      setClient();
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> authorizeScopes() async {
+    final bool isAuthorized = await _googleSignIn.requestScopes(scopes);
+    _isAuthorized = isAuthorized;
+    if (isAuthorized) {
+      setClient();
+    }
+
+    notifyListeners();
+  }
+}
+
+class SignInTopLevel extends StatelessWidget {
+  const SignInTopLevel({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const SignInWidget();
+    //   ChangeNotifierProvider(
+    //   create: (context) => Credentials(),
+    //   child: const SignInWidget(),
+    // );
+  }
+}
 
 class SignInWidget extends StatefulWidget {
   const SignInWidget({super.key});
@@ -38,131 +85,123 @@ class SignInWidget extends StatefulWidget {
 }
 
 class SignInState extends State<SignInWidget> {
-  GoogleSignInAccount? _currentUser;
-  auth.AuthClient? client;
-  bool _isAuthorized = false; // has granted permissions?
+  @override
+  void initState() {
+    super.initState();
+
+    _googleSignIn.onCurrentUserChanged.listen((account) =>
+        Provider.of<Credentials>(context, listen: false).tryLogin(account));
+    // Trigger One Tap UI
+    _googleSignIn.signInSilently();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // final GoogleSignInAccount? user = _currentUser;
+    return Consumer<Credentials>(builder: (context, credentials, child) {
+      if (credentials.user != null) {
+        if (credentials.isAuthorized) {
+          return Column(children: [
+            ElevatedButton(
+                onPressed: () async {
+                  showDialog(
+                      context: context,
+                      builder: (BuildContext context) => const EmailDialogue());
+                },
+                child: const Text("Send Emails")),
+            ElevatedButton(
+                onPressed: _googleSignIn.disconnect,
+                child: const Text("Sign out"))
+          ]);
+        } else {
+          return Column(children: [
+            ElevatedButton(
+              onPressed: () {
+                Provider.of<Credentials>(context, listen: false)
+                    .authorizeScopes();
+              },
+              child: const Text('Give Permissions'),
+            )
+          ]);
+        }
+      } else {
+        return web.renderButton(
+            configuration: web.GSIButtonConfiguration(
+          theme: web.GSIButtonTheme.filledBlue,
+          size: web.GSIButtonSize.large,
+          text: web.GSIButtonText.continueWith,
+          shape: web.GSIButtonShape.rectangular,
+          logoAlignment: web.GSIButtonLogoAlignment.center,
+        ));
+      }
+    });
+  }
+}
+
+class EmailDialogue extends StatefulWidget {
+  const EmailDialogue({super.key});
+
+  @override
+  State<StatefulWidget> createState() => EmailDialogueState();
+}
+
+class EmailDialogueState extends State<EmailDialogue> {
+  int emailsSent = 0;
+  int totalEmails = 1;
 
   @override
   void initState() {
     super.initState();
 
-    _googleSignIn.onCurrentUserChanged
-        .listen((GoogleSignInAccount? account) async {
-      // In mobile, being authenticated means being authorized...
-      bool isAuthorized = account != null;
-      // However, on web...
-      if (kIsWeb && account != null) {
-        isAuthorized = await _googleSignIn.canAccessScopes(scopes);
-      }
-
-      setState(() {
-        _currentUser = account;
-        _isAuthorized = isAuthorized;
-      });
-
-      if (isAuthorized) {
-        client ??= await _googleSignIn.authenticatedClient();
-      }
-    });
-    // Trigger One Tap UI
-    _googleSignIn.signInSilently();
+    totalEmails = Provider.of<PeopleList>(context, listen: false).people.length;
   }
-
-  Future<void> _handleAuthorizeScopes() async {
-    final bool isAuthorized = await _googleSignIn.requestScopes(scopes);
-    setState(() {
-      _isAuthorized = isAuthorized;
-    });
-    if (isAuthorized) {
-      client ??= await _googleSignIn.authenticatedClient();
-    }
-  }
-
-  Future<void> _handleSignOut() => _googleSignIn.disconnect();
 
   @override
   Widget build(BuildContext context) {
-    final GoogleSignInAccount? user = _currentUser;
-    // Authenticated
-    if (user != null) {
-      // Authorized
-      if (_isAuthorized) {
-        return authorizedBuild(context);
-      }
-      // Authorization dialog
-      else {
-        return Column(children: [
-          ElevatedButton(
-            onPressed: _handleAuthorizeScopes,
-            child: const Text('Give Permissions'),
-          )
-        ]);
-      }
-    }
-    // Authentication button
-    else {
-      // return web.renderButton();
-      return web.renderButton(
-          configuration: web.GSIButtonConfiguration(
-        theme: web.GSIButtonTheme.filledBlue,
-        size: web.GSIButtonSize.large,
-        // type: web.GSIButtonType.icon,
-        text: web.GSIButtonText.continueWith,
-        shape: web.GSIButtonShape.rectangular,
-        logoAlignment: web.GSIButtonLogoAlignment.center,
-      ));
-    }
+    sendEmails().then((erg) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Emails sent!")));
+    });
+    return AlertDialog(
+        title: const Text("Sending emails"),
+        content: LinearProgressIndicator(
+          value: emailsSent / totalEmails,
+          semanticsLabel: "Emails sent",
+        ));
   }
 
-  Widget authorizedBuild(BuildContext context) {
-    return Column(children: [
-      const Text("Authorized"),
-      ElevatedButton(
-          onPressed: () async {
-            showDialog(context: context, builder: (BuildContext context) => AlertDialog(
-            title: const Text("Sending emails"),
-            content: LinearProgressIndicator(
-              value: 0.5,
-              semanticsLabel: "Emails sent",
-            )
-          ));
-            await Provider.of<PeopleList>(context, listen: false)
-                .sendEmails(client!, _currentUser!.email);
-          },
-          child: const Text("Send Emails")),
-      ElevatedButton(onPressed: _handleSignOut, child: const Text("Sign out"))
-    ]);
+  Future<void> sendEmails() async {
+    final people = Provider.of<PeopleList>(context, listen: false).people;
+    final order = Provider.of<PeopleList>(context, listen: false).order;
+    final sendFrom =
+        Provider.of<Credentials>(context, listen: false).user!.email;
+
+    final GmailApi gmailApi =
+        GmailApi(Provider.of<Credentials>(context, listen: false).client!);
+
+    List<ApiRequestError> results = [];
+    for (var i = 0; i < people.length; i++) {
+      final assassin = people[order[i]];
+      final target = people[order[(i + 1) % people.length]];
+      Message message = Message(
+          raw: base64UrlEncode(("Content-type: text/plain; charset=\"UTF-8\"\n"
+                  "From: $sendFrom\n"
+                  "To: ${assassin.email}\n"
+                  "Subject: Assassins Target\n\n"
+                  "Hi ${assassin.name},\n\nYour target is ${target.name}. Happy hunting!")
+              .codeUnits));
+      try {
+        await gmailApi.users.messages.send(message, 'me');
+      } on ApiRequestError catch (e) {
+        if (e.message != null) {
+          developer.log(e.message!);
+        }
+        results.add(e);
+      }
+      setState(() {
+        emailsSent += 1;
+      });
+    }
   }
 }
-
-// class EmailDialogue extends StatefulWidget {
-//   const EmailDialogue({super.key});
-//
-//   @override
-//   State<StatefulWidget> createState() => EmailDialogueState();
-// }
-//
-// class EmailDialogueState extends State<EmailDialogue> {
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//       ElevatedButton(
-//           onPressed: () async {
-//             showDialog(context: context, builder: (BuildContext context) => AlertDialog(
-//             title: const Text("Sending emails"),
-//             content: LinearProgressIndicator(
-//               value: 0.5,
-//               semanticsLabel: "Emails sent",
-//             )
-//           ));
-//             await Provider.of<PeopleList>(context, listen: false)
-//                 .sendEmails(client!, _currentUser!.email);
-//           },
-//           child: const Text("Send Emails"));
-//   }
-// }
