@@ -1,6 +1,6 @@
 # Assassins
 
-A Flutter appplication for managing games of [Assassin](https://en.wikipedia.org/wiki/Assassin_(game)). It is hosted on Github Pages [here](https://caden-parajuli.github.io/assassins).
+A Flutter appplication for managing games of [Assassin](https://en.wikipedia.org/wiki/Assassin_(game)). It is hosted on GitHub Pages [here](https://caden-parajuli.github.io/assassins).
 
 ## Supported Platforms
 
@@ -11,7 +11,7 @@ A Flutter appplication for managing games of [Assassin](https://en.wikipedia.org
 ## Features
 
 - [x] Send out emails
-  - [ ] Request throttling
+  - [x] Basic request throttling
 - [ ] Remove players
 - [ ] Import/Export
 - [ ] Backup to Google Drive

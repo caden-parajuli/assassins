@@ -70,10 +70,6 @@ class SignInTopLevel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SignInWidget();
-    //   ChangeNotifierProvider(
-    //   create: (context) => Credentials(),
-    //   child: const SignInWidget(),
-    // );
   }
 }
 
@@ -97,7 +93,6 @@ class SignInState extends State<SignInWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // final GoogleSignInAccount? user = _currentUser;
     return Consumer<Credentials>(builder: (context, credentials, child) {
       if (credentials.user != null) {
         if (credentials.isAuthorized) {
@@ -182,6 +177,7 @@ class EmailDialogueState extends State<EmailDialogue> {
 
     List<ApiRequestError> results = [];
     for (var i = 0; i < people.length; i++) {
+      DateTime lastTime = DateTime.now();
       final assassin = people[order[i]];
       final target = people[order[(i + 1) % people.length]];
       Message message = Message(
@@ -193,6 +189,10 @@ class EmailDialogueState extends State<EmailDialogue> {
               .codeUnits));
       try {
         await gmailApi.users.messages.send(message, 'me');
+        int msSince = DateTime.now().difference(lastTime).inMilliseconds;
+        if (msSince < 500) {
+          await Future.delayed(Duration(milliseconds: 500 - msSince));
+        }
       } on ApiRequestError catch (e) {
         if (e.message != null) {
           developer.log(e.message!);
