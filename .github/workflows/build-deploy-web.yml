@@ -15,11 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu'
-          java-version: "12.x"
-          cache: gradle
+      # - uses: actions/setup-java@v3
+      #   with:
+      #     distribution: 'zulu'
+      #     java-version: "12.x"
+      #     cache: gradle
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -30,7 +30,7 @@ jobs:
         run: flutter pub get
 
       - name: Start Web Release Build
-        run: flutter build web --release
+        run: flutter build web --release --base-href "/assassins/"
      
       - name: Upload Web Build Files
         uses: actions/upload-artifact@v4
