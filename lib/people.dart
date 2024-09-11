@@ -49,15 +49,26 @@ class PeopleList extends ChangeNotifier {
   }
 
   Widget personEntry(int index) {
-    return Row(children: [
-      Expanded(
-          flex: 4,
-          child: Padding(
-              padding: const EdgeInsets.only(left: 5.0),
-              child: Text(_people[index].name))),
-      Expanded(flex: 4, child: Text(people[index].email)),
-      const Spacer(flex: 1),
-    ]);
+    return Container(
+        margin: const EdgeInsets.all(2.0),
+        padding: const EdgeInsets.all(1.0),
+        decoration: BoxDecoration(
+            color: Colors.white12,
+            border: Border.all(width: 1.0, color: Colors.white38)),
+        child: Row(children: [
+          Expanded(
+              flex: 4,
+              child: Padding(
+                  padding: const EdgeInsets.only(left: 5.0),
+                  child: Text(_people[index].name))),
+          Expanded(flex: 4, child: Text(people[index].email)),
+          // const Spacer(flex: 1),
+          ElevatedButton(
+              style: const ButtonStyle(
+                  backgroundColor: WidgetStatePropertyAll<Color>(Colors.red)),
+              onPressed: () => removeAt(index),
+              child: const Icon(Icons.delete, color: Colors.white,))
+        ]));
   }
 
   void remove(Person person) {
@@ -68,30 +79,5 @@ class PeopleList extends ChangeNotifier {
   void removeAt(int index) {
     _people.removeAt(index);
     notifyListeners();
-  }
-
-  Future<List<ApiRequestError>> sendEmails(
-      auth.AuthClient client, String sendFrom) async {
-    final GmailApi gmailApi = GmailApi(client);
-
-    List<ApiRequestError> results = [];
-    for (var i = 0; i < _people.length; i++) {
-      final assassin = _people[_order[i]];
-      final target = _people[_order[(i + 1) % _people.length]];
-      Message message = Message(
-          raw: base64UrlEncode(("Content-type: text/plain; charset=\"UTF-8\"\n"
-                  "From: $sendFrom\n"
-                  "To: ${assassin.email}\n"
-                  "Subject: Assassins Target\n\n"
-                  "Hi ${assassin.name},\n\nYour target is ${target.name}. Happy hunting!")
-              .codeUnits));
-      try {
-        await gmailApi.users.messages.send(message, 'me');
-      } on ApiRequestError catch (e) {
-        print(e.message);
-        results.add(e);
-      }
-    }
-    return results;
   }
 }
