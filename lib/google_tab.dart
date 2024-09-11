@@ -4,7 +4,6 @@ import 'dart:developer' as developer;
 
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
-import 'package:google_sign_in_web/web_only.dart' as web;
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
@@ -13,6 +12,7 @@ import 'package:googleapis/gmail/v1.dart';
 import 'package:googleapis/drive/v3.dart';
 
 import './people.dart';
+import 'auth_button.dart' as auth_button;
 
 const List<String> scopes = [
   GmailApi.gmailSendScope,
@@ -25,6 +25,14 @@ GoogleSignIn _googleSignIn = GoogleSignIn(
       '936372921440-8hmb3lhi7s9j49907himf7vae8ko1u4d.apps.googleusercontent.com',
   scopes: scopes,
 );
+
+Future<void> mobileSignIn() async {
+  try {
+    await _googleSignIn.signIn();
+  } catch (e) {
+    developer.log("Mobile sign in error: ", error: e);
+  }
+}
 
 class Credentials extends ChangeNotifier {
   GoogleSignInAccount? _currentUser;
@@ -120,14 +128,15 @@ class SignInState extends State<SignInWidget> {
           ]);
         }
       } else {
-        return web.renderButton(
-            configuration: web.GSIButtonConfiguration(
-          theme: web.GSIButtonTheme.filledBlue,
-          size: web.GSIButtonSize.large,
-          text: web.GSIButtonText.continueWith,
-          shape: web.GSIButtonShape.rectangular,
-          logoAlignment: web.GSIButtonLogoAlignment.center,
-        ));
+      return auth_button.renderButton(callback: mobileSignIn);
+        // return web.renderButton(
+        //     configuration: web.GSIButtonConfiguration(
+        //   theme: web.GSIButtonTheme.filledBlue,
+        //   size: web.GSIButtonSize.large,
+        //   text: web.GSIButtonText.continueWith,
+        //   shape: web.GSIButtonShape.rectangular,
+        //   logoAlignment: web.GSIButtonLogoAlignment.center,
+        // ));
       }
     });
   }

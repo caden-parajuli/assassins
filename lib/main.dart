@@ -1,4 +1,4 @@
-import './google_auth_web.dart';
+import './google_tab.dart';
 import './people.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

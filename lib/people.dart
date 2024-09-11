@@ -1,9 +1,6 @@
 import 'dart:collection';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:googleapis/gmail/v1.dart';
-import 'package:googleapis_auth/googleapis_auth.dart' as auth show AuthClient;
 
 class Person {
   final String name;
