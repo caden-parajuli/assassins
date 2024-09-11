@@ -95,7 +95,7 @@ class MyHomePage extends StatelessWidget {
                   text: "Players",
                 ),
                 Tab(icon: Icon(Icons.sports_kabaddi), text: "Assignments"),
-                Tab(icon: Icon(Icons.send), text: "Send Emails"),
+                Tab(icon: Icon(Icons.send), text: "Save/Send"),
               ])),
           body: const TabBarView(
             children: <Widget>[ListTab(), AssignmentTab(), SignInTopLevel()],
