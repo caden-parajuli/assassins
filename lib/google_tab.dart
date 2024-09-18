@@ -3,75 +3,12 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
-import 'package:googleapis_auth/googleapis_auth.dart' as auth show AuthClient;
 import 'package:googleapis/gmail/v1.dart';
-import 'package:googleapis/drive/v3.dart';
 
-import './people.dart';
+import 'people.dart';
+import 'google_sign_in.dart' as sign_in;
 import 'auth_button.dart' as auth_button;
-
-const List<String> scopes = [
-  GmailApi.gmailSendScope,
-  DriveApi.driveAppdataScope
-];
-
-GoogleSignIn _googleSignIn = GoogleSignIn(
-  // This is the "Web" client ID
-  clientId:
-      '936372921440-8hmb3lhi7s9j49907himf7vae8ko1u4d.apps.googleusercontent.com',
-  scopes: scopes,
-);
-
-Future<void> mobileSignIn() async {
-  try {
-    await _googleSignIn.signIn();
-  } catch (e) {
-    developer.log("Mobile sign in error: ", error: e);
-  }
-}
-
-class Credentials extends ChangeNotifier {
-  GoogleSignInAccount? _currentUser;
-  bool _isAuthorized = false;
-  auth.AuthClient? _client;
-  GoogleSignInAccount? get user => _currentUser;
-  bool get isAuthorized => _isAuthorized;
-  auth.AuthClient? get client => _client;
-
-  Future<void> setClient() async {
-    _client ??= await _googleSignIn.authenticatedClient();
-  }
-
-  Future<void> tryLogin(GoogleSignInAccount? account) async {
-    bool isAuthorized = account != null;
-    if (kIsWeb && isAuthorized) {
-      isAuthorized = await _googleSignIn.canAccessScopes(scopes);
-    }
-
-    _currentUser = account;
-    _isAuthorized = isAuthorized;
-
-    if (isAuthorized) {
-      setClient();
-    }
-
-    notifyListeners();
-  }
-
-  Future<void> authorizeScopes() async {
-    final bool isAuthorized = await _googleSignIn.requestScopes(scopes);
-    _isAuthorized = isAuthorized;
-    if (isAuthorized) {
-      setClient();
-    }
-
-    notifyListeners();
-  }
-}
 
 class SignInTopLevel extends StatelessWidget {
   const SignInTopLevel({super.key});
@@ -93,15 +30,17 @@ class SignInState extends State<SignInWidget> {
   void initState() {
     super.initState();
 
-    _googleSignIn.onCurrentUserChanged.listen((account) =>
-        Provider.of<Credentials>(context, listen: false).tryLogin(account));
+    sign_in.googleSignIn.onCurrentUserChanged.listen((account) =>
+        Provider.of<sign_in.Credentials>(context, listen: false)
+            .tryLogin(account));
     // Trigger One Tap UI
-    _googleSignIn.signInSilently();
+    sign_in.googleSignIn.signInSilently();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<Credentials>(builder: (context, credentials, child) {
+    return Consumer<sign_in.Credentials>(
+        builder: (context, credentials, child) {
       if (credentials.user != null) {
         if (credentials.isAuthorized) {
           return Column(children: [
@@ -113,14 +52,14 @@ class SignInState extends State<SignInWidget> {
                 },
                 child: const Text("Send Emails")),
             ElevatedButton(
-                onPressed: _googleSignIn.disconnect,
+                onPressed: sign_in.googleSignIn.disconnect,
                 child: const Text("Sign out"))
           ]);
         } else {
           return Column(children: [
             ElevatedButton(
               onPressed: () {
-                Provider.of<Credentials>(context, listen: false)
+                Provider.of<sign_in.Credentials>(context, listen: false)
                     .authorizeScopes();
               },
               child: const Text('Give Permissions'),
@@ -128,15 +67,7 @@ class SignInState extends State<SignInWidget> {
           ]);
         }
       } else {
-      return auth_button.renderButton(callback: mobileSignIn);
-        // return web.renderButton(
-        //     configuration: web.GSIButtonConfiguration(
-        //   theme: web.GSIButtonTheme.filledBlue,
-        //   size: web.GSIButtonSize.large,
-        //   text: web.GSIButtonText.continueWith,
-        //   shape: web.GSIButtonShape.rectangular,
-        //   logoAlignment: web.GSIButtonLogoAlignment.center,
-        // ));
+        return auth_button.renderButton(callback: sign_in.mobileSignIn);
       }
     });
   }
@@ -179,10 +110,10 @@ class EmailDialogueState extends State<EmailDialogue> {
     final people = Provider.of<PeopleList>(context, listen: false).people;
     final order = Provider.of<PeopleList>(context, listen: false).order;
     final sendFrom =
-        Provider.of<Credentials>(context, listen: false).user!.email;
+        Provider.of<sign_in.Credentials>(context, listen: false).user!.email;
 
-    final GmailApi gmailApi =
-        GmailApi(Provider.of<Credentials>(context, listen: false).client!);
+    final GmailApi gmailApi = GmailApi(
+        Provider.of<sign_in.Credentials>(context, listen: false).client!);
 
     List<ApiRequestError> results = [];
     for (var i = 0; i < people.length; i++) {

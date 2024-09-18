@@ -1,7 +1,9 @@
-import './google_tab.dart';
-import './people.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import './google_tab.dart';
+import './google_sign_in.dart' as sign_in;
+import './people.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,6 +14,11 @@ class AssignmentTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(children: <Widget>[
+      // Consumer<PeopleList>(builder: (context, people, child) {
+      //   return ElevatedButton(
+      //       onPressed: () => print(people.encode()),
+      //       child: const Text("Print Encoded"));
+      // }),
       Expanded(child: Consumer<PeopleList>(
         builder: (context, people, child) {
           if (people.isEmpty()) {
@@ -39,13 +46,20 @@ class ListTab extends StatelessWidget {
   const ListTab({super.key});
   @override
   Widget build(BuildContext context) {
+    // TODO move the Column into the Consumer as child
     return Column(children: <Widget>[
-      Expanded(
-          child: ListView.builder(
-              itemCount: Provider.of<PeopleList>(context).numPeople,
+      Expanded(child: Consumer<PeopleList>(builder: (context, people, child) {
+        if (people.numPeople > 0) {
+          return ListView.builder(
+              itemCount: people.numPeople,
               itemBuilder: (context, index) {
-                return Provider.of<PeopleList>(context).personEntry(index);
-              })),
+                return people.personEntry(index);
+              });
+        } else {
+          // TODO Add button for Google Drive import
+          return const Text("Add players to the list using the fields below.");
+        }
+      })),
       const BottomAppBar(child: PersonForm())
     ]);
   }
@@ -60,7 +74,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => PeopleList()),
-          ChangeNotifierProvider(create: (context) => Credentials()),
+          ChangeNotifierProvider(create: (context) => sign_in.Credentials()),
         ],
         child: MaterialApp(
             title: 'BCMB Assassins',

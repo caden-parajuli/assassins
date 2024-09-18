@@ -64,7 +64,10 @@ class PeopleList extends ChangeNotifier {
               style: const ButtonStyle(
                   backgroundColor: WidgetStatePropertyAll<Color>(Colors.red)),
               onPressed: () => removeAt(index),
-              child: const Icon(Icons.delete, color: Colors.white,))
+              child: const Icon(
+                Icons.delete,
+                color: Colors.white,
+              ))
         ]));
   }
 
@@ -76,5 +79,21 @@ class PeopleList extends ChangeNotifier {
   void removeAt(int index) {
     _people.removeAt(index);
     notifyListeners();
+  }
+
+  String encode() {
+    return """{
+  "people": [${_people.map((person) => """
+
+    {
+      "name": "${person.name}", 
+      "email": "${person.email}"
+    }""").join(",")}
+  ],
+  "_comment": "Do NOT touch the field below. You've been warned.",
+  "order:" [
+    ${_order.map((index) => index.toString()).join(",\n    ")}
+  ]
+}""";
   }
 }
