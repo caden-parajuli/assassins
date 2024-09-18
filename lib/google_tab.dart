@@ -30,9 +30,6 @@ class SignInState extends State<SignInWidget> {
   void initState() {
     super.initState();
 
-    sign_in.googleSignIn.onCurrentUserChanged.listen((account) =>
-        Provider.of<sign_in.Credentials>(context, listen: false)
-            .tryLogin(account));
     // Trigger One Tap UI
     sign_in.googleSignIn.signInSilently();
   }

@@ -1,3 +1,4 @@
+import 'package:assassins/auth_button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -22,11 +23,13 @@ class AssignmentTab extends StatelessWidget {
       Expanded(child: Consumer<PeopleList>(
         builder: (context, people, child) {
           if (people.isEmpty()) {
-            return const Text("Please return to the list tab and add players.");
+            return const Text(
+                "Please return to the Players tab and add players first.");
           } else if (people.ordered()) {
             return people.orderView();
           }
-          return const Text("Press the randomize button to generate a cycle.");
+          return const Text(
+              "Press the randomize button to generate target assignments.");
         },
       )),
       BottomAppBar(
@@ -46,22 +49,37 @@ class ListTab extends StatelessWidget {
   const ListTab({super.key});
   @override
   Widget build(BuildContext context) {
-    // TODO move the Column into the Consumer as child
-    return Column(children: <Widget>[
-      Expanded(child: Consumer<PeopleList>(builder: (context, people, child) {
+    return Consumer<PeopleList>(
+      builder: (context, people, child) {
         if (people.numPeople > 0) {
-          return ListView.builder(
-              itemCount: people.numPeople,
-              itemBuilder: (context, index) {
-                return people.personEntry(index);
-              });
+          return Column(children: <Widget>[
+            Expanded(
+                child: ListView.builder(
+                    itemCount: people.numPeople,
+                    itemBuilder: (context, index) {
+                      return people.personEntry(index);
+                    })),
+            child!
+            // const BottomAppBar(child: PersonForm()),
+          ]);
         } else {
-          // TODO Add button for Google Drive import
-          return const Text("Add players to the list using the fields below.");
+            // TODO make this button change based on authorization
+          Widget button = renderButton(callback: sign_in.mobileSignIn);
+          return Column(children: [
+            const Spacer(flex: 10),
+            const Text(
+                "Add players to the list using the fields at the bottom, or login to Google Drive to load a previously saved list.",
+                textScaler: TextScaler.linear(1.1)),
+            const Spacer(flex: 1),
+            button,
+            const Spacer(flex: 10),
+            child!
+          ]);
         }
-      })),
-      const BottomAppBar(child: PersonForm())
-    ]);
+      },
+      child: const BottomAppBar(child: PersonForm()),
+    );
+    //
   }
 }
 
@@ -71,6 +89,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    sign_in.googleSignIn.onCurrentUserChanged.listen((account) =>
+        Provider.of<sign_in.Credentials>(context, listen: false)
+            .tryLogin(account));
     return MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => PeopleList()),
