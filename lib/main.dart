@@ -1,10 +1,12 @@
-import 'package:assassins/auth_button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:googleapis/drive/v3.dart';
 
-import './google_tab.dart';
-import './google_sign_in.dart' as sign_in;
-import './people.dart';
+import 'package:assassins/auth_button.dart';
+import 'package:assassins/drive.dart';
+import 'package:assassins/save_send_tab.dart';
+import 'package:assassins/google_sign_in.dart' as sign_in;
+import 'package:assassins/people.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,16 +17,12 @@ class AssignmentTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(children: <Widget>[
-      // Consumer<PeopleList>(builder: (context, people, child) {
-      //   return ElevatedButton(
-      //       onPressed: () => print(people.encode()),
-      //       child: const Text("Print Encoded"));
-      // }),
       Expanded(child: Consumer<PeopleList>(
         builder: (context, people, child) {
           if (people.isEmpty()) {
-            return const Text(
-                "Please return to the Players tab and add players first.");
+            return const Center(
+                child: Text(
+                    "Please return to the Players tab and add players first."));
           } else if (people.ordered()) {
             return people.orderView();
           }
@@ -35,11 +33,13 @@ class AssignmentTab extends StatelessWidget {
       BottomAppBar(
           child: Row(children: [
         Expanded(
-            child: FloatingActionButton(
-                onPressed: () {
-                  Provider.of<PeopleList>(context, listen: false).makeOrder();
-                },
-                child: const Text("Randomize")))
+          child: FloatingActionButton(
+            onPressed: () {
+              Provider.of<PeopleList>(context, listen: false).makeOrder();
+            },
+            child: const Text("Randomize"),
+          ),
+        )
       ]))
     ]);
   }
@@ -63,18 +63,47 @@ class ListTab extends StatelessWidget {
             // const BottomAppBar(child: PersonForm()),
           ]);
         } else {
-            // TODO make this button change based on authorization
-          Widget button = renderButton(callback: sign_in.mobileSignIn);
-          return Column(children: [
-            const Spacer(flex: 10),
-            const Text(
-                "Add players to the list using the fields at the bottom, or login to Google Drive to load a previously saved list.",
-                textScaler: TextScaler.linear(1.1)),
-            const Spacer(flex: 1),
-            button,
-            const Spacer(flex: 10),
-            child!
-          ]);
+          return Consumer<sign_in.Credentials>(
+              builder: (context, credentials, _) {
+            Widget button;
+            if (credentials.user != null) {
+              if (credentials.isAuthorized) {
+                button = ElevatedButton(
+                    onPressed: () {
+                      var file = showDialog<Future<Object>?>(
+                          context: context,
+                          builder: (context) {
+                            var drive = Provider.of<sign_in.Credentials>(
+                                    context,
+                                    listen: false)
+                                .drive!;
+                            return DriveFilePicker(drive: drive);
+                          });
+                      // TODO load players from file data
+                      // file.then(onValue)
+                    },
+                    child: const Text("Load from Drive"));
+              } else {
+                button = ElevatedButton(
+                  onPressed: credentials.authorizeScopes,
+                  child: const Text('Authorize'),
+                );
+              }
+            } else {
+              button = renderButton(callback: sign_in.mobileSignIn);
+            }
+            return Column(children: [
+              const Spacer(flex: 14),
+              const Text(
+                "Add players to the list using the fields at the bottom, or login to load a previously saved list from Google Drive.",
+                textScaler: TextScaler.linear(1.3),
+              ),
+              const Spacer(flex: 1),
+              button,
+              const Spacer(flex: 14),
+              child!
+            ]);
+          });
         }
       },
       child: const BottomAppBar(child: PersonForm()),
@@ -89,16 +118,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    sign_in.googleSignIn.onCurrentUserChanged.listen((account) =>
-        Provider.of<sign_in.Credentials>(context, listen: false)
-            .tryLogin(account));
     return MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (context) => PeopleList()),
           ChangeNotifierProvider(create: (context) => sign_in.Credentials()),
         ],
         child: MaterialApp(
-            title: 'BCMB Assassins',
+            title: 'Assassins',
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
                   seedColor: Colors.deepPurple, brightness: Brightness.dark),
@@ -117,6 +143,9 @@ class MyHomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    sign_in.googleSignIn.onCurrentUserChanged.listen((account) =>
+        Provider.of<sign_in.Credentials>(context, listen: false)
+            .tryLogin(account));
     return DefaultTabController(
         length: 3,
         initialIndex: 0,

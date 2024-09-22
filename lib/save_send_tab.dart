@@ -31,7 +31,9 @@ class SignInState extends State<SignInWidget> {
     super.initState();
 
     // Trigger One Tap UI
-    sign_in.googleSignIn.signInSilently();
+    if (Provider.of<sign_in.Credentials>(context, listen: false).user == null) {
+      sign_in.googleSignIn.signInSilently();
+    }
   }
 
   @override
@@ -40,14 +42,15 @@ class SignInState extends State<SignInWidget> {
         builder: (context, credentials, child) {
       if (credentials.user != null) {
         if (credentials.isAuthorized) {
-          return Column(children: [
+          return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             ElevatedButton(
                 onPressed: () async {
                   showDialog(
                       context: context,
-                      builder: (BuildContext context) => const EmailDialogue());
+                      builder: (BuildContext context) => const EmailDialog());
                 },
                 child: const Text("Send Emails")),
+            ElevatedButton(onPressed: () {}, child: const Text("Save Players")),
             ElevatedButton(
                 onPressed: sign_in.googleSignIn.disconnect,
                 child: const Text("Sign out"))
@@ -55,11 +58,8 @@ class SignInState extends State<SignInWidget> {
         } else {
           return Column(children: [
             ElevatedButton(
-              onPressed: () {
-                Provider.of<sign_in.Credentials>(context, listen: false)
-                    .authorizeScopes();
-              },
-              child: const Text('Give Permissions'),
+              onPressed: credentials.authorizeScopes,
+              child: const Text('Authorize'),
             )
           ]);
         }
@@ -70,14 +70,14 @@ class SignInState extends State<SignInWidget> {
   }
 }
 
-class EmailDialogue extends StatefulWidget {
-  const EmailDialogue({super.key});
+class EmailDialog extends StatefulWidget {
+  const EmailDialog({super.key});
 
   @override
-  State<StatefulWidget> createState() => EmailDialogueState();
+  State<StatefulWidget> createState() => EmailDialogState();
 }
 
-class EmailDialogueState extends State<EmailDialogue> {
+class EmailDialogState extends State<EmailDialog> {
   int emailsSent = 0;
   int totalEmails = 1;
 

@@ -27,12 +27,16 @@ class Credentials extends ChangeNotifier {
   GoogleSignInAccount? _currentUser;
   bool _isAuthorized = false;
   auth.AuthClient? _client;
+  DriveApi? _drive;
+
   GoogleSignInAccount? get user => _currentUser;
   bool get isAuthorized => _isAuthorized;
   auth.AuthClient? get client => _client;
+  DriveApi? get drive => _drive;
 
   Future<void> setClient() async {
     _client ??= await googleSignIn.authenticatedClient();
+    _drive ??= (client != null) ? DriveApi(client!) : null;
   }
 
   Future<void> tryLogin(GoogleSignInAccount? account) async {
