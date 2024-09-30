@@ -9,7 +9,8 @@ import 'package:googleapis_auth/googleapis_auth.dart';
 /// Returns null if the file does not exist, otherwise returns its id
 Future<String?> fileExists(DriveApi drive, String filename) async {
   var list = await getFileList(drive);
-  var index = list.indexWhere((file) => file.name == filename);
+  var index = list.indexWhere((file) =>
+      (file.name == "appDataFolder/$filename" || file.name == filename));
   if (index < 0) {
     return null;
   } else {
@@ -32,7 +33,7 @@ Future<List<File>> getFileList(DriveApi drive) async {
 
 Future<File> create(DriveApi drive, String filename, String data) async {
   var stream = Stream.value(data.codeUnits);
-  return drive.files.create(File(name: "appDataFolder/$filename"),
+  return drive.files.create(File(name: filename, parents: ["appDataFolder"]),
       uploadMedia: Media(stream, data.length, contentType: "application/json"));
 }
 
@@ -40,6 +41,10 @@ Future<File> update(DriveApi drive, String id, String data) async {
   var stream = Stream.value(data.codeUnits);
   return drive.files.update(File(), id,
       uploadMedia: Media(stream, data.length, contentType: "application/json"));
+}
+
+Future<void> delete(DriveApi drive, String id) async {
+  return drive.files.delete(id);
 }
 
 class DriveFilePicker extends StatefulWidget {
@@ -84,12 +89,30 @@ class DriveFilePickerState extends State<DriveFilePicker> {
                           child: ListTile(
                         selected: index == selected,
                         title: Text(entry.name ?? ""),
+                        trailing: ElevatedButton(
+                            style: const ButtonStyle(
+                                backgroundColor:
+                                    WidgetStatePropertyAll<Color>(Colors.red)),
+                            onPressed: () {
+                              widget.drive.files
+                                  .delete(list!.elementAt(index).id!)
+                                  .then((_) {
+                                setState(() {
+                                  // list?.removeAt(index); // RACE CONDITION
+                                  list = null;
+                                  loadList();
+                                });
+                              });
+                            },
+                            child: const Icon(
+                              Icons.delete,
+                              color: Colors.white,
+                            )),
                         onTap: () {
                           setState(() {
                             selected = index;
                           });
                         },
-                        // TODO add file delete button.
                       ));
                     },
                   ),
@@ -119,7 +142,8 @@ class DriveFilePickerState extends State<DriveFilePicker> {
                 ),
               ],
             )
-          : const Expanded(child: CircularProgressIndicator()),
+          : const AspectRatio(
+              aspectRatio: 1.0, child: CircularProgressIndicator()),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 
+import 'package:assassins/save_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:googleapis/gmail/v1.dart';
@@ -50,13 +51,21 @@ class SignInState extends State<SignInWidget> {
                       builder: (BuildContext context) => const EmailDialog());
                 },
                 child: const Text("Send Emails")),
-            ElevatedButton(onPressed: () {}, child: const Text("Save Players")),
+            ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                      context: context,
+                      builder: (context) {
+                        return const SaveDialog();
+                      });
+                },
+                child: const Text("Save Players")),
             ElevatedButton(
                 onPressed: sign_in.googleSignIn.disconnect,
                 child: const Text("Sign out"))
           ]);
         } else {
-          return Column(children: [
+          return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             ElevatedButton(
               onPressed: credentials.authorizeScopes,
               child: const Text('Authorize'),
@@ -64,7 +73,9 @@ class SignInState extends State<SignInWidget> {
           ]);
         }
       } else {
-        return auth_button.renderButton(callback: sign_in.mobileSignIn);
+        return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          auth_button.renderButton(callback: sign_in.mobileSignIn)
+        ]);
       }
     });
   }

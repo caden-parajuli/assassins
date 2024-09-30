@@ -13,4 +13,4 @@ A Flutter appplication for managing games of [Assassin](https://en.wikipedia.org
 - [x] Send out emails
   - [x] Basic request throttling
 - [x] Remove players
-- [ ] Google Drive save/load
+- [x] Google Drive save/load

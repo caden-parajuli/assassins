@@ -1,3 +1,4 @@
+import 'dart:developer' as dev;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:googleapis/drive/v3.dart';
@@ -60,7 +61,6 @@ class ListTab extends StatelessWidget {
                       return people.personEntry(index);
                     })),
             child!
-            // const BottomAppBar(child: PersonForm()),
           ]);
         } else {
           return Consumer<sign_in.Credentials>(
@@ -70,7 +70,7 @@ class ListTab extends StatelessWidget {
               if (credentials.isAuthorized) {
                 button = ElevatedButton(
                     onPressed: () {
-                      var file = showDialog<Future<Object>?>(
+                      var file = showDialog<Media>(
                           context: context,
                           builder: (context) {
                             var drive = Provider.of<sign_in.Credentials>(
@@ -79,8 +79,22 @@ class ListTab extends StatelessWidget {
                                 .drive!;
                             return DriveFilePicker(drive: drive);
                           });
-                      // TODO load players from file data
-                      // file.then(onValue)
+                      file.then((media) {
+                        if (media != null) {
+                          return media.stream.fold(
+                              "", (str, l) => str + String.fromCharCodes(l));
+                        } else {
+                          dev.log("Null media!");
+                          return Future.value(null);
+                        }
+                      }).then((data) {
+                        if (data != null) {
+                          dev.log(data);
+                          Provider.of<PeopleList>(context, listen: false).decode(data);
+                        } else {
+                          dev.log("Null media/data");
+                        }
+                      });
                     },
                     child: const Text("Load from Drive"));
               } else {

@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
@@ -91,9 +92,23 @@ class PeopleList extends ChangeNotifier {
     }""").join(",")}
   ],
   "_comment": "Do NOT touch the field below. You've been warned.",
-  "order:" [
+  "order": [
     ${_order.map((index) => index.toString()).join(",\n    ")}
   ]
 }""";
+  }
+
+  void decode(String json) {
+    var obj = jsonDecode(json);
+    _people.clear();
+    var peopleMap = (obj["people"] as List).cast<Map<String, dynamic>>();
+    var peopleDecoded = peopleMap
+        .map<Person>(
+            (personJson) => Person(personJson["name"], personJson["email"]))
+        .toList();
+    _people.addAll(peopleDecoded);
+    _order.clear();
+    _order.addAll((obj["order"] as List).map((elem) => elem));
+    notifyListeners();
   }
 }
